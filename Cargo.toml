@@ -1,0 +1,20 @@
+[package]
+name = "stm32burn"
+version = "0.1.0"
+edition = "2021"
+description = "STM32 UART bootloader (AN3155) flashing tool"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serialport = "4"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+anyhow = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

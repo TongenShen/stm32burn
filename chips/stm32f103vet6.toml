@@ -1,0 +1,26 @@
+# STM32F103VET6（512 KB Flash，高密度）
+#
+# 型号解读：V = LQFP100，E = 512 KB Flash，T = LQFP，6 = -40~85 °C
+# 注意与 C8T6 的区别：高密度型号的页大小是 **2 KB**，不是 1 KB。
+#   512 KB / 2 KB = 256 页，正好用满标准擦除的页号空间（0..255）。
+#
+# PID：0x414 = STM32F10x High-density（256~512 KB）。
+# 若 GET_ID 报出别的值（例如国产兼容片），按实际值调整 pids，
+# 或临时清空列表 pids = [] 跳过校验。参考 ST AN2606 Table 136。
+#
+# 接线：bootloader 固定走 USART1 —— PA9(TX) / PA10(RX)，别接成 USART2/3。
+
+[chip]
+name       = "STM32F103VET6"
+pids       = [0x414]
+flash_base = 0x08000000
+flash_size = 0x80000        # 512 KB
+page_size  = 0x800          # 2 KB/页，共 256 页
+erase_mode = "page"
+ram_base   = 0x20000000     # 64 KB SRAM
+
+[uart]
+baud      = 115200
+parity    = "even"
+data_bits = 8
+stop_bits = 1

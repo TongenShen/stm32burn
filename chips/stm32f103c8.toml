@@ -1,0 +1,20 @@
+# STM32F103C8（64 KB Flash，中容量）
+#
+# PID 说明：0x0410 对应 STM32F10x 中容量（64~128 KB）。
+# 若你的片子在 GET_ID 返回别的值，把 PID 加进 pids 列表即可。
+# 参考 ST AN2606 Table 136。
+
+[chip]
+name       = "STM32F103C8"
+pids       = [0x0410]
+flash_base = 0x08000000
+flash_size = 0x10000        # 64 KB
+page_size  = 0x400          # 1 KB/页，共 64 页
+erase_mode = "page"
+ram_base   = 0x20000000
+
+[uart]
+baud      = 115200
+parity    = "even"
+data_bits = 8
+stop_bits = 1
