@@ -1,71 +1,73 @@
-# stm32burn 设计说明
+# stm32burn Design Notes
 
-通过 USART 烧录 STM32 的命令行工具，走芯片出厂固化的系统存储器 Bootloader（ST **AN3155** 协议），不依赖 ST-Link 或任何专用调试器。
+**[中文](DESIGN_zh.md) | English**
 
-## 一、定位与范围
+A command-line tool that flashes STM32 microcontrollers over USART through the factory-programmed system memory bootloader (ST **AN3155** protocol), without ST-Link or any dedicated debug probe.
 
-- **只用串口**：一根 USB-TTL（CH340 / CP2102 / FT232）接 PA9/PA10 即可烧录
-- **纯 CLI**：没有图形界面，适合脚本、批量和远程场景
-- **配置驱动**：芯片参数放在 TOML 里，类似 OpenOCD 的 target cfg
-- **第一版目标**：STM32F103（以 C8T6 为基准），架构上能扩展到 F4/G0/L4
+## 1. Scope
 
-非目标：调试（断点、寄存器）、读保护设置、Intel HEX、GUI。
+- **USART only**: one USB-TTL adapter (CH340 / CP2102 / FT232) wired to PA9/PA10 is all it takes
+- **CLI only**: no GUI, suitable for scripts, batch runs and remote workflows
+- **Config-driven**: chip parameters live in TOML, similar to OpenOCD target configs
+- **First release target**: STM32F103 (C8T6 as the baseline), architected to extend to F4/G0/L4
 
-## 二、为什么不用自研协议
+Non-goals: debugging (breakpoints, registers), readout protection settings, Intel HEX, GUI.
 
-STM32 芯片内部固化了一个 bootloader，`BOOT0=1` 复位后从系统存储器启动，通过 USART1（PA9/PA10）走 AN3155 协议。我们要实现的只是**主机侧**，芯片侧的行为是 ST 保证的。这也是 FlyMcu / mcuisp / STM32CubeProgrammer 的 UART 模式所做的事。
+## 2. Why not a custom protocol
 
-## 三、架构
+Every STM32 ships with a bootloader in system memory. With `BOOT0=1` the chip boots from it after reset and speaks AN3155 over USART1 (PA9/PA10). We only implement the **host side**; the device side is guaranteed by ST. This is exactly what the UART mode of FlyMcu / mcuisp / STM32CubeProgrammer does.
+
+## 3. Architecture
 
 ```
-main.rs        CLI 参数、流程编排、进度输出、退出码
-  └─ burn.rs   Burner：把协议操作编排成 擦除/写入/校验
-       ├─ protocol.rs   帧构造与应答解析（纯函数，无 IO）
+main.rs        CLI parsing, flow orchestration, progress output, exit codes
+  └─ burn.rs   Burner: turns protocol operations into erase / write / verify stages
+       ├─ protocol.rs   frame construction and response parsing (pure functions, no IO)
        └─ transport.rs  Transport trait + SerialTransport
-config.rs      芯片配置解析、校验、页号换算
-elf.rs         ELF32 / BIN 解析 → 烧写镜像列表
+config.rs      chip config parsing, validation, page-number arithmetic
+elf.rs         ELF32 / BIN parsing -> list of flash images
 ```
 
-关键设计：**协议层不直接操作串口**，只依赖 `Transport` trait。这样没有硬件也能用脚本化传输层跑完整流程测试，抓字节序错误。
+The key decision: **the protocol layer never touches the serial port**; it depends only on the `Transport` trait. That makes it possible to run the full flow against a scripted transport and catch byte-order bugs without hardware.
 
-## 四、协议要点（含实际踩过的坑）
+## 4. Protocol notes (including the traps we hit)
 
-### 帧格式
+### Frame formats
 
-| 帧 | 字节序列 |
+| Frame | Byte sequence |
 |---|---|
-| 命令 | `cmd, !cmd` |
-| 地址 | `addr[4] 大端, addr[0]^addr[1]^addr[2]^addr[3]` |
-| 写数据 | `N-1, data..., (N-1) ^ data[0] ^ ... ^ data[N-1]` |
-| 读长度 | `N-1, !(N-1)` |
-| 页擦除 | `页数-1, 页号...（每页 1 字节）, 校验` |
-| 全片擦除 | `0xFF, 0x00` |
+| Command | `cmd, !cmd` |
+| Address | `addr[4] big-endian, addr[0]^addr[1]^addr[2]^addr[3]` |
+| Write data | `N-1, data..., (N-1) ^ data[0] ^ ... ^ data[N-1]` |
+| Read length | `N-1, !(N-1)` |
+| Page erase | `page_count-1, page numbers... (1 byte each), checksum` |
+| Mass erase | `0xFF, 0x00` |
 
-应答：`ACK = 0x79`，`NACK = 0x1F`。
+Responses: `ACK = 0x79`, `NACK = 0x1F`.
 
-### 必须记住的六个细节
+### Six details worth memorizing
 
-1. **串口是 8E1**（偶校验），不是常见的 8N1。搞错会全程 NACK。
-2. **擦除页号是 1 字节**，不是 2 字节。2 字节页号属于扩展擦除（0x44），只在 F4/G0/L4 上用。
-3. **全片擦除帧只有两个字节** `0xFF 0x00`，不是 `0xFF 0xFF ...`。
-4. **写数据必须补齐到 4 的倍数**，补 `0xFF`（擦除后的值）。
-5. **读长度帧的校验是补码**（`!N`），而写数据帧的校验是异或——两者不一样。
-6. **ELF 取 `p_paddr`（LMA）**，不是 `p_vaddr`。`.data` 段的 VMA 在 RAM、LMA 在 Flash，用错会把初始值写进内存。
+1. **The port is 8E1** (even parity), not the usual 8N1. Getting this wrong causes NACK on every command.
+2. **Erase page numbers are 1 byte**, not 2. Two-byte page numbers belong to extended erase (0x44), used only on F4/G0/L4.
+3. **The mass erase frame is only two bytes**: `0xFF 0x00`, not `0xFF 0xFF ...`.
+4. **Write data must be padded to a multiple of 4**, using `0xFF` (the erased value).
+5. **The read-length checksum is a complement** (`!N`), while the write-data checksum is XOR — they are not the same.
+6. **ELF images must use `p_paddr` (LMA)**, not `p_vaddr`. For `.data`, the VMA is in RAM while the LMA is in flash; using the wrong one writes initial values into memory.
 
-### 流程
+### Flow
 
 ```
-0x7F 同步（可重试）→ GET_ID 校验型号 → 擦除 → 逐块写入 → 可选读回校验
+0x7F sync (retryable) -> GET_ID model check -> erase -> chunked write -> optional read-back verify
 ```
 
-握手前先 `flush` 接收缓冲：串口刚打开时常见残留数据，会让第一次 `0x7F` 失败。
+Flush the receive buffer before the handshake: serial ports often carry stale bytes right after opening, which makes the first `0x7F` fail.
 
-## 五、配置文件
+## 5. Configuration file
 
 ```toml
 [chip]
 name       = "STM32F103C8"
-pids       = [0x0410]        # GET_ID 读回值，不在列表内直接拒绝烧录
+pids       = [0x0410]        # value returned by GET_ID; refuse to flash if not listed
 flash_base = 0x08000000
 flash_size = 0x10000
 page_size  = 0x400
@@ -79,65 +81,65 @@ data_bits = 8
 stop_bits = 1
 ```
 
-`pids` 是防「烧错型号」的关键：`GET_ID` 读回 0x0410 才继续，避免把 F407 的固件烧进 F103。
+`pids` is the guard against flashing the wrong part: the tool proceeds only if `GET_ID` returns a listed value, so F407 firmware cannot be flashed into an F103.
 
-查找顺序：`-c` 指定 → 固件同目录同名 `.toml` → `./stm32burn.toml` → 可执行文件同目录 `stm32burn.toml`。
+Lookup order: `-c` flag -> a `.toml` next to the firmware with the same name -> `./stm32burn.toml` -> `stm32burn.toml` next to the executable.
 
-## 六、命令行
+## 6. Command line
 
 ```
 stm32burn [OPTIONS] [FIRMWARE] [PORT]
 
-  <FIRMWARE>            .elf 或 .bin
+  <FIRMWARE>            .elf or .bin
   <PORT>                COM3
 
-  -c, --config <FILE>   芯片配置
-  -b, --baud <BAUD>     波特率，默认 115200
+  -c, --config <FILE>   chip configuration
+  -b, --baud <BAUD>     baud rate, 115200 by default
   -e, --erase <MODE>    page | mass | extended
-      --verify          写完读回比对
-      --base <ADDR>     仅 BIN 需要：烧写起始地址
-      --no-enter        跳过「拨 BOOT0」提示
-  -y, --yes             不做交互询问
-      --dry-run         只解析并打印计划
-  -v, --verbose         打印收发字节
-  -l, --list-ports      列出串口
+      --verify          read back and compare after writing
+      --base <ADDR>     BIN only: start address to flash at
+      --no-enter        skip the "set BOOT0" prompt
+  -y, --yes             do not ask for confirmation
+      --dry-run         parse and print the plan only
+  -v, --verbose         dump bytes sent and received
+  -l, --list-ports      list serial ports
 ```
 
-### 退出码
+### Exit codes
 
-| 码 | 含义 |
+| Code | Meaning |
 |---|---|
-| 0 | 成功 |
-| 1 | 参数/文件/配置错误 |
-| 2 | 串口打不开 |
-| 3 | 握手失败或通信超时 |
-| 4 | PID 不匹配 |
-| 5 | 擦除失败 |
-| 6 | 写入失败 |
-| 7 | 校验失败 |
+| 0 | Success |
+| 1 | Argument / file / config error |
+| 2 | Cannot open the serial port |
+| 3 | Handshake failed or communication timeout |
+| 4 | PID mismatch |
+| 5 | Erase failed |
+| 6 | Write failed |
+| 7 | Verify failed |
 
-## 七、测试策略
+## 7. Testing strategy
 
-没有硬件时的验证手段：
+How we validate without hardware:
 
-- `protocol.rs` 的纯函数单测：帧构造、校验、边界（256 字节、256 页）
-- `tests/protocol_flow.rs`：脚本化 `Transport` 断言实际发出的字节序列，覆盖单块写、4 字节补齐、擦除、全擦、PID 解析、NACK、握手重试、完整流程
-- `--dry-run`：验证 ELF/BIN 解析、地址范围、擦除页数
+- Unit tests on the pure functions in `protocol.rs`: frame construction, checksums, boundaries (256-byte chunks, 255-page batches)
+- `tests/protocol_flow.rs`: a scripted `Transport` asserts the exact bytes emitted, covering single-chunk writes, 4-byte padding, page erase, mass erase, PID parsing, NACK handling, handshake retry and the full flow
+- `--dry-run`: validates ELF/BIN parsing, address ranges and erase page counts
 
-硬件到位后需要人工验证的：真实握手时序、擦除耗时、verify 一致性。
+Still needing manual verification once hardware is available: real handshake timing, erase duration, verify consistency.
 
-## 八、已知限制
+## 8. Known limitations
 
-- 只实现了标准擦除（0x43）。扩展擦除（0x44）的帧构造已就绪，但 F4/G0/L4 的扇区表尚未配置。
-- 不支持 >255 页的芯片（标准擦除页号 1 字节）；这类芯片应走 extended 模式。
-- 不自动跳转执行（`GO` 命令已实现但未启用）：手动 BOOT0 场景下拨回复位更直观。
-- 波特率固定可配，不做自适应提速。
-- 不支持 Intel HEX。
+- Only standard erase (0x43) is implemented. Frame construction for extended erase (0x44) is ready, but sector tables for F4/G0/L4 are not configured.
+- Chips with more than 256 pages (1 MB parts, 512 pages) cannot be erased page by page; they need `-e mass`. Standard erase reserves only one byte for page numbers.
+- No automatic jump to the application (`GO` is implemented but not enabled): with manual BOOT0 control, telling the user to switch back and reset is clearer.
+- Baud rate is configurable but there is no adaptive speed-up.
+- No Intel HEX support.
 
-## 九、后续可做
+## 9. Possible next steps
 
-1. **自动下载电路**：DTR→BOOT0、RTS→NRST，实现一键进入 bootloader（需硬件配合）
-2. **F4/G0/L4 扇区表**：扩展擦除的页表配置
-3. **HEX 支持**：Intel HEX 解析
-4. **读保护检测**：擦除失败时提示是否开了 RDP
-5. **批量/产线模式**：配置文件驱动、日志落盘
+1. **Auto-download circuit**: DTR -> BOOT0, RTS -> NRST for one-key entry into the bootloader (needs hardware support)
+2. **F4/G0/L4 sector tables**: page tables for extended erase
+3. **Intel HEX support**: HEX parsing
+4. **Readout protection detection**: hint at RDP when erase fails
+5. **Batch / production mode**: config-driven runs, logging to disk

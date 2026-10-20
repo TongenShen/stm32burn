@@ -78,7 +78,7 @@ parity = "even"
 
 暂不支持：Intel HEX、F4/G0/L4 的扩展扇区擦除、超过 256 页芯片的按页擦除（1 MB 型号需用 `-e mass`）、自动控制 BOOT0（需 DTR/RTS 电路）。
 
-详细设计与协议笔记见 [DESIGN.md](DESIGN.md)。
+详细设计与协议笔记见 [DESIGN_zh.md](DESIGN_zh.md)。
 
 ## 添加新芯片
 

@@ -78,7 +78,7 @@ When `-c` is omitted, the tool looks for a `.toml` next to the firmware with the
 
 Not supported yet: Intel HEX, extended sector erase for F4/G0/L4, page erase on chips with more than 256 pages (1 MB parts need `-e mass`), automatic BOOT0 control (requires a DTR/RTS circuit).
 
-Design notes and protocol details: [DESIGN.md](DESIGN.md) (Chinese).
+Design notes and protocol details: [DESIGN.md](DESIGN.md).
 
 ## Adding a new chip
 
