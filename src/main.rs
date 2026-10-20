@@ -16,58 +16,63 @@ use stm32burn::transport::{self, SerialTransport};
 #[derive(Parser, Debug)]
 #[command(
     name = "stm32burn",
+    bin_name = "stm32burn",
     version,
-    about = "通过 USART 烧录 STM32（AN3155 系统存储器 Bootloader）",
-    after_help = "示例:\n  stm32burn app.elf COM3\n  stm32burn app.bin COM3 --base 0x08000000 --verify\n  stm32burn app.elf COM3 -c chips/stm32f103c8.toml -b 230400\n  stm32burn --list-ports"
+    about = "Flash STM32 over USART using the system memory bootloader (AN3155)",
+    after_help = "Examples:\n  stm32burn app.elf COM3\n  stm32burn app.bin COM3 --base 0x08000000 --verify\n  stm32burn app.elf COM3 -c chips/stm32f103c8.toml -b 230400\n  stm32burn --list-ports\n\nChinese help: stm32burn --chelp"
 )]
 struct Cli {
-    /// 固件文件（.elf 或 .bin）
+    /// Firmware file (.elf or .bin)
     #[arg(value_name = "FIRMWARE")]
     firmware: Option<PathBuf>,
 
-    /// 串口端口，例如 COM3
+    /// Serial port, e.g. COM3
     #[arg(value_name = "PORT")]
     port: Option<String>,
 
-    /// 芯片配置文件（TOML）
+    /// Chip configuration file (TOML)
     #[arg(short, long, value_name = "FILE")]
     config: Option<PathBuf>,
 
-    /// 波特率，覆盖配置文件（默认 115200）
+    /// Baud rate, overrides the config file (default 115200)
     #[arg(short, long, value_name = "BAUD")]
     baud: Option<u32>,
 
-    /// 擦除模式，覆盖配置文件
+    /// Erase mode, overrides the config file
     #[arg(short, long, value_enum)]
     erase: Option<EraseArg>,
 
-    /// 写入后读回校验
+    /// Read back and verify after writing
     #[arg(long)]
     verify: bool,
 
-    /// BIN 文件的烧写起始地址，如 0x08000000
+    /// Start address for BIN files, e.g. 0x08000000
     #[arg(long, value_name = "ADDR", value_parser = parse_addr)]
     base: Option<u32>,
 
-    /// 跳过「拨 BOOT0 + 复位」提示（已经在 bootloader 里时用）
+    /// Skip the "set BOOT0 and reset" prompt (when already in the bootloader)
     #[arg(long)]
     no_enter: bool,
 
-    /// 不做任何交互询问
+    /// Do not ask for any confirmation
     #[arg(short, long)]
     yes: bool,
 
-    /// 只解析固件并打印计划，不连接串口
+    /// Parse the firmware and print the plan only, do not open the port
     #[arg(long)]
     dry_run: bool,
 
-    /// 打印每一步收发的字节
+    /// Print bytes sent and received at each step
     #[arg(short, long)]
     verbose: bool,
 
-    /// 列出可用串口后退出
+    /// List serial ports and exit
     #[arg(short = 'l', long)]
     list_ports: bool,
+
+    /// Show help in Chinese
+    #[arg(long)]
+    chelp: bool,
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -139,8 +144,53 @@ fn main() {
     std::process::exit(code);
 }
 
+/// 中文帮助。
+///
+/// clap 生成的 `--help` 固定为英文（文案来自字段注释），中文版单独渲染，
+/// 这样两套文案各自可读，不用维护两份 Command 结构。
+fn print_chinese_help() {
+    println!(
+        r#"stm32burn {}
+通过 USART 烧录 STM32（AN3155 系统存储器 Bootloader）
+
+用法:
+  stm32burn [选项] [固件] [串口]
+
+参数:
+  [固件]  固件文件（.elf 或 .bin）
+  [串口]  串口端口，例如 COM3
+
+选项:
+  -c, --config <文件>    芯片配置文件（TOML）
+  -b, --baud <波特率>    波特率，覆盖配置文件（默认 115200）
+  -e, --erase <模式>     擦除模式: page | mass | extended
+      --verify           写入后读回校验
+      --base <地址>      BIN 文件的烧写起始地址，如 0x08000000
+      --no-enter         跳过「拨 BOOT0 + 复位」提示
+  -y, --yes              不做任何交互询问
+      --dry-run          只解析固件并打印计划，不连接串口
+  -v, --verbose          打印每一步收发的字节
+  -l, --list-ports       列出可用串口后退出
+      --chelp            显示本中文帮助
+  -h, --help             显示英文帮助
+  -V, --version          显示版本
+
+示例:
+  stm32burn app.elf COM3
+  stm32burn app.bin COM3 --base 0x08000000 --verify
+  stm32burn app.elf COM3 -c chips/stm32f103c8.toml -b 230400
+  stm32burn --list-ports"#,
+        env!("CARGO_PKG_VERSION")
+    );
+}
+
 fn run() -> std::result::Result<(), ExitError> {
     let cli = Cli::parse();
+
+    if cli.chelp {
+        print_chinese_help();
+        return Ok(());
+    }
 
     if cli.list_ports {
         let ports = transport::list_ports().map_err(|e| ExitError::new(2, e))?;

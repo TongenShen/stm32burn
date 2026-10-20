@@ -103,6 +103,7 @@ stm32burn [OPTIONS] [FIRMWARE] [PORT]
       --dry-run         parse and print the plan only
   -v, --verbose         dump bytes sent and received
   -l, --list-ports      list serial ports
+      --chelp           show help in Chinese (--help is English)
 ```
 
 ### Exit codes

@@ -44,6 +44,7 @@ stm32burn app.elf COM3 -e mass              # mass erase
 stm32burn app.bin COM3 --base 0x08000000    # BIN requires a start address
 stm32burn app.elf COM3 --dry-run            # parse only, do not flash
 stm32burn --list-ports                      # list serial ports
+stm32burn --chelp                           # help in Chinese (--help is English)
 ```
 
 ## Configuration

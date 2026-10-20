@@ -44,6 +44,7 @@ stm32burn app.elf COM3 -e mass              # 整片擦除
 stm32burn app.bin COM3 --base 0x08000000    # BIN 必须给地址
 stm32burn app.elf COM3 --dry-run            # 只解析不烧
 stm32burn --list-ports                      # 列出串口
+stm32burn --chelp                           # 中文帮助（--help 为英文）
 ```
 
 ## 配置文件

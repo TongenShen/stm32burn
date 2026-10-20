@@ -103,6 +103,7 @@ stm32burn [OPTIONS] [FIRMWARE] [PORT]
       --dry-run         只解析并打印计划
   -v, --verbose         打印收发字节
   -l, --list-ports      列出串口
+      --chelp           显示中文帮助（--help 为英文）
 ```
 
 ### 退出码
