@@ -80,9 +80,18 @@ parity = "even"
 
 ## 添加新芯片
 
-`.dsh/skills/add-stm32-chip/SKILL.md` 里有一份给 AI 助手用的适配流程，包含 F103 全系速查表、页大小分档规则和验证步骤。把型号报给它，就能直接生成对应的 `chips/*.toml`。
+仓库里内置了一份**给 AI 助手用的适配流程**。clone 下来后，直接对 AI 说「帮我适配 STM32F103RCT6」即可，它会自己找到并读取：
+
+| 工具 | 读取路径 |
+|---|---|
+| Claude Code | `.claude/skills/add-stm32-chip/SKILL.md` |
+| DSH | `.dsh/skills/add-stm32-chip/SKILL.md` |
+| 其它 | 根目录 [`AGENTS.md`](AGENTS.md) 会指向前两份 |
+
+skill 里包含 F103 全系速查表、页大小分档规则、256 页边界处理和常见踩坑清单。AI 会按规则推导 Flash 大小、页大小和 PID，生成 `chips/*.toml`，并用 `--dry-run` 验证。
 
 手动做的话，复制一份现有配置改四个字段即可：`pids`、`flash_size`、`page_size`、`erase_mode`。**页大小按容量分档**——高密度（256/512 KB）是 2 KB，其余 F103 是 1 KB，填错会导致擦除页号错位。
+
 
 ## 开发
 
