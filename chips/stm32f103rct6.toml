@@ -1,0 +1,22 @@
+# STM32F103RCT6（256 KB Flash，高密度）
+#
+# 型号解读：R = LQFP64，C = 256 KB Flash，T = LQFP，6 = -40~85 °C
+# 高密度型号的页大小是 2 KB（不是 1 KB）：256 KB / 2 KB = 128 页。
+#
+# PID 0x414 = STM32F10x High-density（256~512 KB）。
+# 接线固定 USART1：PA9(TX) / PA10(RX)。
+
+[chip]
+name       = "STM32F103RCT6"
+pids       = [0x414]
+flash_base = 0x08000000
+flash_size = 0x40000        # 256 KB
+page_size  = 0x800          # 2 KB/页，共 128 页
+erase_mode = "page"
+ram_base   = 0x20000000     # 48 KB SRAM
+
+[uart]
+baud      = 115200
+parity    = "even"
+data_bits = 8
+stop_bits = 1
