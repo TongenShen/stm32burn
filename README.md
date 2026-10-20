@@ -70,7 +70,7 @@ parity = "even"
 
 ## 当前支持
 
-- **芯片**：STM32F103 系列，已带 C8T6（64 KB / 1 KB 页）和 VET6（512 KB / 2 KB 页）两份配置。其它型号加一个 `chips/*.toml` 即可，Flash 布局一致的系列无需改代码。
+- **芯片**：STM32F103 系列，已带 C8T6（64 KB / 1 KB 页）、RCT6（256 KB / 2 KB 页）、VET6（512 KB / 2 KB 页）三份配置。其它型号加一个 `chips/*.toml` 即可，Flash 布局一致的系列无需改代码。
 - **固件**：`.elf`（ARM，取 LMA 地址）和 `.bin`（需 `--base`）。
 - **擦除**：按页或整片。
 
