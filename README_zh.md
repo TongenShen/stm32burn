@@ -96,6 +96,21 @@ skill 里包含 F103 全系速查表、页大小分档规则、256 页边界处�
 手动做的话，复制一份现有配置改四个字段即可：`pids`、`flash_size`、`page_size`、`erase_mode`。**页大小按容量分档**——高密度（256/512 KB）是 2 KB，其余 F103 是 1 KB，填错会导致擦除页号错位。
 
 
+## 桌面图形界面
+
+基于 Tauri 的图形界面在 [`gui/`](gui/)。它直接调用同一个库，不解析命令行文本，进度以结构化事件推送到前端。
+
+```bash
+cd gui
+npm install
+npm run tauri dev      # 开发模式，热更新
+npm run tauri build    # 打包安装程序（NSIS）
+```
+
+界面查找 `chips/*.toml` 的顺序：安装版的资源目录 → 便携版 exe 同级目录 → 开发模式下的工作目录。
+
+> 如果窗口启动报 `0x8000FFFF`，把 `WEBVIEW2_USER_DATA_FOLDER` 指向一个可写目录。部分终端防护软件会阻止 WebView2 在 AppData 下创建配置目录。
+
 ## 开发
 
 ```bash

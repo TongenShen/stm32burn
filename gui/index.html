@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>stm32burn</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>stm32burn</h1>
+        <span class="sub">STM32 串口烧录 · AN3155 系统存储器 Bootloader</span>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <label>固件文件</label>
+          <div class="row">
+            <input id="firmware" readonly placeholder="选择 .elf 或 .bin" />
+            <button id="pickFirmware">浏览</button>
+          </div>
+          <div class="row">
+            <input id="base" placeholder="BIN 起始地址，如 0x08000000" />
+          </div>
+          <div class="hint">ELF 自动取 LMA 地址，BIN 必须填起始地址</div>
+        </div>
+
+        <div class="card">
+          <label>芯片配置</label>
+          <div class="row">
+            <select id="chip"></select>
+            <button id="refreshChips">刷新</button>
+          </div>
+          <div id="chipInfo" class="hint"></div>
+        </div>
+
+        <div class="card">
+          <label>串口</label>
+          <div class="row">
+            <select id="port"></select>
+            <button id="refreshPorts">刷新</button>
+          </div>
+          <div class="row">
+            <input id="baud" value="115200" title="波特率" />
+            <select id="erase" title="擦除模式">
+              <option value="">擦除：跟随配置</option>
+              <option value="page">擦除：按页</option>
+              <option value="mass">擦除：整片</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="verify" /> 写入后读回校验</label>
+        </div>
+      </section>
+
+      <section class="actions">
+        <button id="inspect">预检</button>
+        <button id="burn" class="primary">开始烧录</button>
+      </section>
+
+      <section class="progress-wrap">
+        <div class="progress"><div id="bar"></div></div>
+        <div id="status" class="status">就绪</div>
+      </section>
+
+      <section class="log">
+        <pre id="log"></pre>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

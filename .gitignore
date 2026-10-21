@@ -4,6 +4,13 @@
 # 本地 cargo 代理配置（因人而异，不入库）
 /.cargo
 
+# GUI
+/gui/node_modules
+/gui/dist
+/gui/src-tauri/target
+/gui/src-tauri/gen
+/gui/icon-source.png
+
 # 编辑器
 .vscode/
 .idea/

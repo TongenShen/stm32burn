@@ -95,6 +95,21 @@ The skill contains a lookup table for the whole F103 family, the page-size tieri
 
 To do it by hand, copy an existing config and change four fields: `pids`, `flash_size`, `page_size`, `erase_mode`. **Page size depends on the density tier** — high-density parts (256/512 KB) use 2 KB pages, the rest of the F103 family uses 1 KB. A wrong value shifts every page number during erase.
 
+## Desktop GUI
+
+A Tauri-based GUI lives in [`gui/`](gui/). It calls the same library directly — no CLI text parsing, progress arrives as structured events.
+
+```bash
+cd gui
+npm install
+npm run tauri dev      # development with hot reload
+npm run tauri build    # release installer (NSIS)
+```
+
+The GUI looks for `chips/*.toml` in the resource directory (installed build), next to the executable (portable build), or in `chips/` relative to the working directory (development).
+
+> If the window fails to start with `0x8000FFFF`, point `WEBVIEW2_USER_DATA_FOLDER` at a writable directory. Some endpoint-protection software blocks WebView2 from creating its profile under AppData.
+
 ## Development
 
 ```bash
