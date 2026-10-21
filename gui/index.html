@@ -42,7 +42,11 @@
             <button id="refreshPorts">刷新</button>
           </div>
           <div class="row">
-            <input id="baud" value="115200" title="波特率" />
+            <div class="baud-field">
+              <input id="baud" type="number" value="115200" min="1200" step="100" title="波特率，可直接输入" />
+              <button id="baudToggle" class="baud-toggle" title="常用波特率" type="button">▾</button>
+              <div id="baudPopup" class="baud-popup hidden"></div>
+            </div>
             <select id="erase" title="擦除模式">
               <option value="">擦除：跟随配置</option>
               <option value="page">擦除：按页</option>

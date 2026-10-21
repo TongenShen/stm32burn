@@ -41,6 +41,8 @@ const els = {
   chipInfo: $<HTMLDivElement>("chipInfo"),
   port: $<HTMLSelectElement>("port"),
   baud: $<HTMLInputElement>("baud"),
+  baudToggle: $<HTMLButtonElement>("baudToggle"),
+  baudPopup: $<HTMLDivElement>("baudPopup"),
   erase: $<HTMLSelectElement>("erase"),
   verify: $<HTMLInputElement>("verify"),
   inspect: $<HTMLButtonElement>("inspect"),
@@ -213,6 +215,30 @@ document.getElementById("refreshChips")!.addEventListener("click", refreshChips)
 els.chip.addEventListener("change", updateChipInfo);
 els.inspect.addEventListener("click", doInspect);
 els.burn.addEventListener("click", doBurn);
+
+// 常用波特率下拉：点击按钮展开，选中后回填到输入框
+const BAUD_RATES = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600];
+for (const rate of BAUD_RATES) {
+  const item = document.createElement("button");
+  item.type = "button";
+  item.textContent = String(rate);
+  item.addEventListener("click", () => {
+    els.baud.value = String(rate);
+    els.baudPopup.classList.add("hidden");
+  });
+  els.baudPopup.appendChild(item);
+}
+
+els.baudToggle.addEventListener("click", (e) => {
+  e.stopPropagation();
+  els.baudPopup.classList.toggle("hidden");
+});
+
+// 点别处收起
+document.addEventListener("click", () => els.baudPopup.classList.add("hidden"));
+
+// 聚焦时全选，方便直接覆盖输入
+els.baud.addEventListener("focus", () => els.baud.select());
 
 await refreshPorts();
 await refreshChips();

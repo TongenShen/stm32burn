@@ -153,6 +153,61 @@ button.primary:hover:not(:disabled) {
   margin-top: 8px;
 }
 
+/* 波特率：输入框 + 右侧常用值下拉 */
+.baud-field {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.baud-field input {
+  flex: 1;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.baud-toggle {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+  padding: 7px 10px;
+  line-height: 1;
+}
+
+.baud-popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: #1b1f28;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.baud-popup.hidden {
+  display: none;
+}
+
+.baud-popup button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.baud-popup button:hover {
+  background: #2a3040;
+}
+
 .actions {
   display: flex;
   gap: 10px;

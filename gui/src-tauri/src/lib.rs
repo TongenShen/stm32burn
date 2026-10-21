@@ -2,6 +2,7 @@
 //!
 //! 不做任何命令行文本解析——所有数据都是结构化的结构体/事件。
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -107,6 +108,9 @@ fn list_chips(app: AppHandle) -> Vec<ChipEntry> {
         dirs.push(cwd.join("../chips"));
     }
 
+    // 三个来源可能指向同一个目录（便携版下 resource_dir 就是 exe 目录），
+    // 而 Windows 路径大小写不敏感、字符串比较却敏感，所以用规范化路径去重。
+    let mut seen: HashSet<PathBuf> = HashSet::new();
     let mut out = Vec::new();
     for dir in dirs {
         let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -117,12 +121,13 @@ fn list_chips(app: AppHandle) -> Vec<ChipEntry> {
             if path.extension().and_then(|e| e.to_str()) != Some("toml") {
                 continue;
             }
+            let key = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+            if !seen.insert(key) {
+                continue;
+            }
             let Ok(cfg) = Config::load(&path) else {
                 continue;
             };
-            if out.iter().any(|c: &ChipEntry| c.path == path.to_string_lossy()) {
-                continue;
-            }
             out.push(ChipEntry {
                 name: cfg.chip.name.clone(),
                 path: path.to_string_lossy().to_string(),
