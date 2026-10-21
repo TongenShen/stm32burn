@@ -23,3 +23,11 @@
 - 新增芯片只加 `chips/*.toml`，不要改代码。
 - 改动后跑 `cargo test`（29 个测试，无需硬件）和 `cargo clippy --all-targets`。
 - 提交前用 `./target/release/stm32burn --dry-run` 验证配置能正确加载。
+
+## GUI（gui/）
+
+- **构建只用 `npx tauri build`，不要用 `cargo build --release`。** 后者会让 `tauri-build` 误判为 dev 模式，把 `devUrl`（`http://localhost:1420`）写进 exe，双击就是 `ERR_CONNECTION_REFUSED`。
+- 便携版 exe 必须取完整 `tauri build` 的产物（带 bundle 类型标记）。`--no-bundle` 直出的裸 exe 在部分机器上会闪退，安装包里的那份却能正常运行。
+- `build.rs` 已声明 `cargo:rerun-if-changed=../dist`，前端产物变化会自动触发重编。若仍怀疑 exe 没更新，先 `touch` 一下 `src-tauri/src/lib.rs`。
+- 双击无反应时先看崩溃日志：`%TEMP%\stm32burn-gui-crash.log` 或 exe 同级的同名文件。
+- `chips/*.toml` 通过 `bundle.resources` 打进安装包；便携版则放在 exe 同级的 `chips/`。

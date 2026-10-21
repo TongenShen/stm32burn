@@ -11,6 +11,10 @@
 /gui/src-tauri/gen
 /gui/icon-source.png
 
+# GUI 本地测试产物
+/.wv2-run
+/gui-*.png
+
 # 编辑器
 .vscode/
 .idea/

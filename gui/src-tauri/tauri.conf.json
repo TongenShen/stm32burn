@@ -13,10 +13,10 @@
     "windows": [
       {
         "title": "stm32burn — STM32 串口烧录",
-        "width": 1000,
-        "height": 760,
-        "minWidth": 820,
-        "minHeight": 620
+        "width": 1060,
+        "height": 800,
+        "minWidth": 620,
+        "minHeight": 520
       }
     ],
     "security": {

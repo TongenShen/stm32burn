@@ -19,7 +19,7 @@ body {
 }
 
 .app {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -44,13 +44,18 @@ h1 {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* auto-fit 让列数随宽度自适应，永远不会横向溢出 */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 12px;
 }
 
-@media (max-width: 880px) {
+/* 窄窗口下减少留白，给卡片更多空间 */
+@media (max-width: 720px) {
+  .app {
+    padding: 14px;
+  }
   .grid {
-    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
