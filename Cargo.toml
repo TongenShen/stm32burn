@@ -1,6 +1,6 @@
 [package]
 name = "stm32burn"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "STM32 UART bootloader (AN3155) flashing tool"
 license = "MIT"
