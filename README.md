@@ -2,9 +2,36 @@
 
 **[中文](README_zh.md) | English**
 
-Flash STM32 microcontrollers over USART using the chip's built-in system memory bootloader (ST AN3155 protocol). No ST-Link required — a single USB-TTL adapter is enough.
+Flash STM32 microcontrollers over USART using the chip's built-in system memory bootloader (ST AN3155). No ST-Link required — a single USB-TTL adapter is enough.
 
-## Quick start
+Two front ends share the same flashing core:
+
+- **CLI** (`stm32burn.exe`) — scriptable, suited to automation and CI
+- **GUI** (`stm32burn-gui.exe`) — desktop app built with Tauri
+
+## Download
+
+| Asset | Contents |
+|---|---|
+| `stm32burn-gui-v0.2.0-windows-x64.zip` | GUI **and** CLI, portable, no installation |
+| `stm32burn-v0.2.0-windows-x64.zip` | CLI only, portable |
+| `stm32burn_0.2.0_x64-setup.exe` | GUI installer (NSIS); does not include the CLI |
+
+All Windows x64 builds are statically linked — no Visual C++ redistributable required.
+
+## GUI
+
+1. Connect the USB-TTL adapter, set **BOOT0 to 1**, press reset
+2. Launch `stm32burn-gui.exe`
+3. Select the firmware, the chip config, and the serial port
+4. Click **预检** (dry run) to check the address layout, then **开始烧录** (flash)
+5. Set **BOOT0 back to 0** and press reset
+
+Wiring and behaviour are identical to the CLI. The GUI reads chip configs from `chips/` next to the executable (portable build) or from the resource directory (installed build).
+
+> The window is 620 × 520 at minimum; cards reflow from three columns down to one as you shrink it.
+
+## CLI quick start
 
 ```bash
 # 1. Build
@@ -77,7 +104,7 @@ When `-c` is omitted, the tool looks for a `.toml` next to the firmware with the
 - **Firmware**: `.elf` (ARM, uses the LMA address) and `.bin` (requires `--base`).
 - **Erase**: per page or mass.
 
-Not supported yet: Intel HEX, extended sector erase for F4/G0/L4, page erase on chips with more than 256 pages (1 MB parts need `-e mass`), automatic BOOT0 control (requires a DTR/RTS circuit).
+Not supported yet: Intel HEX, extended sector erase for F4/G0/L4, page erase on chips with more than 256 pages (1 MB parts need `-e mass`), automatic BOOT0 control (requires a DTR/RTS circuit), cancelling an in-progress flash from the GUI.
 
 Design notes and protocol details: [DESIGN.md](DESIGN.md).
 
@@ -95,9 +122,7 @@ The skill contains a lookup table for the whole F103 family, the page-size tieri
 
 To do it by hand, copy an existing config and change four fields: `pids`, `flash_size`, `page_size`, `erase_mode`. **Page size depends on the density tier** — high-density parts (256/512 KB) use 2 KB pages, the rest of the F103 family uses 1 KB. A wrong value shifts every page number during erase.
 
-## Desktop GUI
-
-A Tauri-based GUI lives in [`gui/`](gui/). It calls the same library directly — no CLI text parsing, progress arrives as structured events.
+## Building the GUI
 
 ```bash
 cd gui
@@ -106,9 +131,9 @@ npm run tauri dev      # development with hot reload
 npm run tauri build    # release installer (NSIS)
 ```
 
-The GUI looks for `chips/*.toml` in the resource directory (installed build), next to the executable (portable build), or in `chips/` relative to the working directory (development).
+Use `npm run tauri build` rather than `cargo build --release` — the latter embeds the dev server URL and the resulting exe fails with `ERR_CONNECTION_REFUSED`.
 
-> If the window fails to start with `0x8000FFFF`, point `WEBVIEW2_USER_DATA_FOLDER` at a writable directory. Some endpoint-protection software blocks WebView2 from creating its profile under AppData.
+> If the window fails to start with `0x8000FFFF`, point `WEBVIEW2_USER_DATA_FOLDER` at a writable directory. Some endpoint-protection software blocks WebView2 from creating its profile under AppData. A crash log is written to `%TEMP%\stm32burn-gui-crash.log`.
 
 ## Development
 

@@ -2,9 +2,36 @@
 
 **[English](README.md) | 中文**
 
-通过 USART 烧录 STM32 的命令行工具，使用芯片自带的系统存储器 Bootloader（ST AN3155 协议），**不需要 ST-Link**，一根 USB-TTL 就能烧。
+通过 USART 烧录 STM32，使用芯片自带的系统存储器 Bootloader（ST AN3155 协议），**不需要 ST-Link**，一根 USB-TTL 就能烧。
 
-## 快速开始
+两个前端共用同一套烧录核心：
+
+- **CLI**（`stm32burn.exe`）— 可用脚本调用，适合自动化和 CI
+- **GUI**（`stm32burn-gui.exe`）— 基于 Tauri 的桌面界面
+
+## 下载
+
+| 资产 | 内容 |
+|---|---|
+| `stm32burn-gui-v0.2.0-windows-x64.zip` | GUI **和** CLI 都有，便携版，免安装 |
+| `stm32burn-v0.2.0-windows-x64.zip` | 只有 CLI，便携版 |
+| `stm32burn_0.2.0_x64-setup.exe` | GUI 安装程序（NSIS），不含 CLI |
+
+所有 Windows x64 构建都是静态链接，不需要装 Visual C++ 运行库。
+
+## 图形界面
+
+1. 接好 USB-TTL，**BOOT0 拨到 1**，按一下复位键
+2. 打开 `stm32burn-gui.exe`
+3. 选固件、选芯片配置、选串口
+4. 先点「预检」确认地址和页数，再点「开始烧录」
+5. 结束后 **BOOT0 拨回 0**，按复位运行程序
+
+接线与行为跟 CLI 完全一致。界面从 exe 同级的 `chips/`（便携版）或安装资源目录（安装版）读取芯片配置。
+
+> 窗口最小 620 × 520，缩小过程中卡片会从三列自动折到两列、一列。
+
+## CLI 快速开始
 
 ```bash
 # 1. 编译
@@ -77,7 +104,7 @@ parity = "even"
 - **固件**：`.elf`（ARM，取 LMA 地址）和 `.bin`（需 `--base`）。
 - **擦除**：按页或整片。
 
-暂不支持：Intel HEX、F4/G0/L4 的扩展扇区擦除、超过 256 页芯片的按页擦除（1 MB 型号需用 `-e mass`）、自动控制 BOOT0（需 DTR/RTS 电路）。
+暂不支持：Intel HEX、F4/G0/L4 的扩展扇区擦除、超过 256 页芯片的按页擦除（1 MB 型号需用 `-e mass`）、自动控制 BOOT0（需 DTR/RTS 电路）、GUI 烧录中途取消。
 
 详细设计与协议笔记见 [DESIGN_zh.md](DESIGN_zh.md)。
 
@@ -95,21 +122,18 @@ skill 里包含 F103 全系速查表、页大小分档规则、256 页边界处�
 
 手动做的话，复制一份现有配置改四个字段即可：`pids`、`flash_size`、`page_size`、`erase_mode`。**页大小按容量分档**——高密度（256/512 KB）是 2 KB，其余 F103 是 1 KB，填错会导致擦除页号错位。
 
-
-## 桌面图形界面
-
-基于 Tauri 的图形界面在 [`gui/`](gui/)。它直接调用同一个库，不解析命令行文本，进度以结构化事件推送到前端。
+## 构建 GUI
 
 ```bash
 cd gui
 npm install
 npm run tauri dev      # 开发模式，热更新
-npm run tauri build    # 打包安装程序（NSIS）
+npm run tauri build    # 打包 exe 和 NSIS 安装程序
 ```
 
-界面查找 `chips/*.toml` 的顺序：安装版的资源目录 → 便携版 exe 同级目录 → 开发模式下的工作目录。
+构建请用 `npm run tauri build`，不要用 `cargo build --release`——后者会把开发服务器地址嵌进 exe，双击直接 `ERR_CONNECTION_REFUSED`。
 
-> 如果窗口启动报 `0x8000FFFF`，把 `WEBVIEW2_USER_DATA_FOLDER` 指向一个可写目录。部分终端防护软件会阻止 WebView2 在 AppData 下创建配置目录。
+> 如果窗口启动报 `0x8000FFFF`，把 `WEBVIEW2_USER_DATA_FOLDER` 指向一个可写目录。部分终端防护软件会阻止 WebView2 在 AppData 下创建配置目录。崩溃日志写在 `%TEMP%\stm32burn-gui-crash.log`。
 
 ## 开发
 
@@ -121,4 +145,3 @@ cargo build --release
 协议层是纯函数，配合脚本化传输层可以在没有开发板的情况下验证帧格式。
 
 > 如果 `cargo build` 卡在下载依赖，多半是环境里配了未运行的本地代理。可在项目下建 `.cargo/config.toml` 写 `[http] proxy = ""` 绕过（该文件已被 gitignore）。
-
